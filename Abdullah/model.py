@@ -11,9 +11,14 @@ thisdict = {
   0.0: "Mustang",
 
 }
-#Read image
+#Declaration of all used variables
 pop=[]
 fit=[]
+k=0
+x=[]
+y=[]
+avg1=[]
+sum=0
 img1 = Image.open('groupGray.jpg')
 img2 = Image.open('boothiGray.jpg')
 img1_array=np.array(img1)
@@ -22,22 +27,28 @@ width, height = img1.size
 width1, height1 = img2.size
 
 
-def population():
-    size=50
+def population(x):
+    size=x
     for i in range(size):
         x=random.randint(0,width-width1)
         y=random.randint(0,height-height1)
         pop.append([x,y])
+    print("Generation No." ,k )
+    return pop
 
 
+def fittness():
+    for i in pop:
+        slice=img1_array[i[1]:i[1]+height1,i[0]:i[0]+width1]
+        fit.append([scipy.stats.kendalltau(img2_array, slice).correlation,i[0],i[1]])
+    fit.sort(key = lambda x: x[0], reverse=True)
 
-def fittness(x,y):
-    slice=img1_array[y:y+height1,x:x+width1]
-    fit.append((scipy.stats.kendalltau(img2_array, slice).correlation,x,y))
+
 
 def fittness1(x,y):
     slice=img1_array[y:y+height1,x:x+width1]
     return scipy.stats.kendalltau(img2_array, slice).correlation
+
 
 def display(x,y):
     '''slice=img1_array[y:y+height1,x:x+width1]'''
@@ -77,59 +88,59 @@ def cross_bits(x1,y1,x2,y2):
 
 
 
-def crossover(fit):
+def crossover():
     pop.clear()
     for i in range(0,len(fit),2):
-        if(fit[i][0]>0):
-            pop.append([fit[i][1],fit[i][2]])
-            pop.append([fit[i+1][1],fit[i+1][2]])
-        else:
-            x1 = bin(fit[i][1])[2:]
-            y1 = bin(fit[i][2])[2:]
-            x2 = bin(fit[i+1][1])[2:]
-            y2 = bin(fit[i+1][2])[2:]
-            x1,y1,x2,y2=cross_bits(x1,y1,x2,y2)
-            c1=x1+y1
-            c2=x2+y2
+        x1 = bin(fit[i][1])[2:]
+        y1 = bin(fit[i][2])[2:]
+        x2 = bin(fit[i+1][1])[2:]
+        y2 = bin(fit[i+1][2])[2:]
+        x1,y1,x2,y2=cross_bits(x1,y1,x2,y2)
+        c1=x1+y1
+        c2=x2+y2
+        ran=random.randint(1,len(c1)-1)
+        ran1=random.randint(1,len(c2)-1)
+        x1=c1[0:ran]
+        y1=c1[ran:]
+        x2=c2[0:ran1]
+        y2=c2[ran1:]
+        while(int(x1,2)>width-width1 or int(x2,2)> width-width1 or int(y1,2)>height-height1 or int(y2,2)>height-height1):
             ran=random.randint(1,len(c1)-1)
             ran1=random.randint(1,len(c2)-1)
             x1=c1[0:ran]
             y1=c1[ran:]
             x2=c2[0:ran1]
             y2=c2[ran1:]
-            while(int(x1,2)>width-width1 or int(x2,2)> width-width1 or int(y1,2)>height-height1 or int(y2,2)>height-height1):
-                ran=random.randint(1,len(c1)-1)
-                ran1=random.randint(1,len(c2)-1)
-                x1=c1[0:ran]
-                y1=c1[ran:]
-                x2=c2[0:ran1]
-                y2=c2[ran1:]
 
-            ran2=random.randint(0,1)
-            if(ran2==0):
+        ran2=random.randint(0,1)
+        if(ran2==0):
+            if(fittness1(int(x1,2),int(y2,2))>fittness1(fit[i][1],fit[i][2])):
                 pop.append([int(x1,2),int(y2,2)])
+            else:
+                pop.append([fit[i][1],fit[i][2]])
+            if(fittness1(int(x2,2),int(y1,2))>fittness1(fit[i][1],fit[i][2])):
                 pop.append([int(x2,2),int(y1,2)])
-            elif(ran2==1):
+            else:
+                pop.append([fit[i][1],fit[i][2]])
+        elif(ran2==1):
+            if(fittness1(int(x2,2),int(y1,2))>fittness1(fit[i][1],fit[i][2])):
                 pop.append([int(x2,2),int(y1,2)])
+            else:
+                pop.append([fit[i][1],fit[i][2]])
+            if(fittness1(int(x1,2),int(y2,2))>fittness1(fit[i][1],fit[i][2])):
                 pop.append([int(x1,2),int(y2,2)])
+            else:
+                pop.append([fit[i][1],fit[i][2]])
     fit.clear()
 
 def random1(y,z,x):
     co=fittness1(y,z)
-    if(co>0.8):
-        t=int(len(x)-((16/100)*len(x)))
+    mutation_rate=50
+    if(co>0):
+        t=int(len(x)-((mutation_rate/100)*len(x)))
         ran4=random.randint(t,len(x)-1)
-    elif(co>0.5):
-        t=int(len(x)-((33/100)*len(x)))
-        ran4=random.randint(t,len(x)-1)
-    elif(co>0.3):
-        t=int(len(x)-((66/100)*len(x)))
-        ran4=random.randint(t,len(x)-1)
-    elif(co>0):
-        t=int(len(x)-((80/100)*len(x)))
-        ran4=random.randint(t,len(x)-1)
-    elif(co<0 or co>-1):
-        t=int(len(x)-((50/100)*len(x)))
+    else:
+        t=int(len(x)-((mutation_rate/100)*len(x)))
         ran4=random.randint(0,t)
     return ran4
 
@@ -166,6 +177,7 @@ def mutation():
 
 
 
+
         if(ran3==1):
             y = bin(pop[i][1])[2:]
             y=bits(y)
@@ -195,31 +207,40 @@ def mutation():
 
 
 
-k=0
-x=[]
-y=[]
-avg=[]
-sum=0
-population()
-for i in pop:
-    fittness(i[0],i[1])
-fit.sort(key = lambda x: x[0], reverse=True)
-while(fit[0][0]<0.9):
-    crossover(fit)
+
+
+
+
+size=250
+correlation=0.5
+pop=population(size)
+fittness()
+while(fit[0][0]<correlation):
+    crossover()
     mutation()
-    for i in pop:
-        fittness(i[0],i[1])
-    fit.sort(key = lambda x: x[0], reverse=True)
+    fittness()
+    #for generation no.
+    k+=1
+    print("-----------------")
+    print("Generation No. ",k)
+
+
+
+    #for graph
     x.append(k)
     y.append(fit[0][0])
-    for a in range(len(fit)):
-        sum=sum+fit[a][0]
-    sum=sum/len(fit)
-    avg.append(sum)
+    #Average Calculation
+    for l in range(len(fit)):
+        sum=sum+fit[l][0]
+    avg=sum/len(fit)
+    avg1.append(avg)
     sum=0
-    print(k)
-    print("----------------------------")
-    k+=1
-plt.plot(x, avg)
+    print("Average of Coorelation ",avg)
+    print("-----------------")
+
+
+#plots
+plt.plot(avg1)
 plt.plot(x, y)
+#baba picture
 display(fit[0][1],fit[0][2])
